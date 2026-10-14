@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: proactive-site-block
+context:
+  scaffold_script: scaffold.sh

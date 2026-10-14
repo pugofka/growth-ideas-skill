@@ -1,0 +1,16 @@
+{
+  "name": "pugofka",
+  "owner": {
+    "name": "Pugofka"
+  },
+  "metadata": {
+    "description": "Pugofka skills for Claude Code"
+  },
+  "plugins": [
+    {
+      "name": "growth-ideas",
+      "source": "./",
+      "description": "Evidence-grounded growth hypotheses for B2B products: product context file, JTBD → opportunity tree → testable hypotheses with kill criteria, dedupe against rejected/approved, Russian-market reference."
+    }
+  ]
+}

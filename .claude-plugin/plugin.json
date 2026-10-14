@@ -1,0 +1,8 @@
+{
+  "name": "growth-ideas",
+  "version": "0.1.0",
+  "description": "Evidence-grounded growth hypotheses for B2B products: product context file, JTBD → opportunity tree → testable hypotheses with kill criteria, dedupe against rejected/approved, Russian-market reference.",
+  "author": { "name": "Pugofka" },
+  "license": "MIT",
+  "skills": "./skills"
+}
