@@ -1,28 +1,16 @@
 #!/bin/bash
 set -euo pipefail
 mkdir -p docs
-cat > growth-context.md <<'CTX'
-# Growth context: Lumen
-## Goal
-- Metric: number of paying clinics. Horizon: 2 months.
-## Product facts
-- F1. Lumen is a B2B appointment-scheduling SaaS for small private dental clinics in Russia.
-- F2. Has: online booking widget, SMS-free email reminders, staff calendar, basic reports.
-- F3. Does not have: payments, insurance integrations, mobile app (not planned).
-- F4. Pricing: monthly subscription per clinic.
-## Customers
-- F5. 14 paying clinics, all small (1-3 chairs), most came from the founder's personal network.
-- F6. Main sales blocker: clinics fear migrating patient records from their current software.
-## Channels and data
-- F7. Website gets few visits; no reliable analytics yet (lead source is not recorded).
-- F8. The site FAQ promises "online prepayment", which the product does not have.
-## Related assets
-- F9. The same team runs a small IT-outsourcing agency that already maintains websites for 30 local medical businesses.
-## Red lines
-- No pivots, no taking payments, no medical advice. Owner time budget: 3 hours per week.
-## Already tried / rejected — do not propose
-- Cold calling clinics (too much owner time, no results).
-- Free "practice audit" that requires access to patient data (blocked by clinics' privacy concerns).
-## Already approved / in progress — do not propose again
-- A referral discount for existing clinics.
+mkdir -p notes
+cat > notes/call-notes.md <<'CTX'
+# Call notes — Tallyhop (internal)
+
+- Tallyhop is a web app for independent bicycle repair shops in Poland: parts inventory, repair tickets, SMS-free email notifications to customers when a bike is ready.
+- 52 shops pay a monthly subscription; most found us through a regional cycling trade fair in 2025.
+- There is no integration with parts wholesalers yet; shops type in parts by hand. Owners mention it on almost every call.
+- A shop usually decides within 2-3 weeks of a demo; there is a 14-day free trial.
+- The website has a demo request form and a pricing page. Nobody tracks which page a demo request came from.
+- Tried and stopped: paid search ads on generic keywords ("bike shop software") — too expensive for the budget; cold emails to shop owners — almost no replies.
+- Already in progress: a referral discount for existing shops.
+- The team: two founders and one developer. Founders can spend about 4 hours a week on growth.
 CTX

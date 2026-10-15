@@ -1,0 +1,4 @@
+# Fixture names from tools/gen-evals.py. tools/check-skill.py fails if any appears in a skill.
+Tallyhop
+Partlink
+Quorvane

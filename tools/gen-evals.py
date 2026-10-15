@@ -1,119 +1,107 @@
-"""Generates evals/ for the growth-ideas skill: abstract, fictional products; one behaviour per case."""
+"""Generates evals/ for the growth-ideas skill.
+
+Regression checks of form only, on fictional products. They show the skill did not break; they do not show it is useful.
+Fixture names go to evals/fixture-terms.txt; tools/check-skill.py fails if any of them appears in a skill's text.
+Never copy a fixture, a grader's wording or an example from here into SKILL.md.
+"""
 import os, shutil, textwrap
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'evals')
+FIXTURE_TERMS = ['Tallyhop', 'Partlink', 'Quorvane']
 
-CLINIC = textwrap.dedent('''\
-# Growth context: Lumen
-## Goal
-- Metric: number of paying clinics. Horizon: 2 months.
-## Product facts
-- F1. Lumen is a B2B appointment-scheduling SaaS for small private dental clinics in Russia.
-- F2. Has: online booking widget, SMS-free email reminders, staff calendar, basic reports.
-- F3. Does not have: payments, insurance integrations, mobile app (not planned).
-- F4. Pricing: monthly subscription per clinic.
-## Customers
-- F5. 14 paying clinics, all small (1-3 chairs), most came from the founder's personal network.
-- F6. Main sales blocker: clinics fear migrating patient records from their current software.
-## Channels and data
-- F7. Website gets few visits; no reliable analytics yet (lead source is not recorded).
-- F8. The site FAQ promises "online prepayment", which the product does not have.
-## Related assets
-- F9. The same team runs a small IT-outsourcing agency that already maintains websites for 30 local medical businesses.
-## Red lines
-- No pivots, no taking payments, no medical advice. Owner time budget: 3 hours per week.
-## Already tried / rejected — do not propose
-- Cold calling clinics (too much owner time, no results).
-- Free "practice audit" that requires access to patient data (blocked by clinics' privacy concerns).
-## Already approved / in progress — do not propose again
-- A referral discount for existing clinics.
-''')
-LEADER = textwrap.dedent('''\
-# Growth context: Fernway
-## Goal
-- Metric: number of paying companies. Horizon: 2 months.
-## Product facts
-- F1. Fernway is an online form and survey builder for small businesses (up to 20 employees).
-- F2. Has: drag-and-drop form editor, email notifications, basic response analytics, embeds for websites.
-- F3. Does not have: advanced logic branching, enterprise SSO, data warehouse connectors, mobile app.
-- F4. Price is several times lower than the market leader's.
-## Competition
-- F5. Formatica is the market leader, selling an enterprise suite to large corporations; Fernway has no feature parity with it.
-## Customers
-- F6. 40 paying small businesses.
-## Related assets
-- F7. The same owner runs a small marketing agency that builds websites for local businesses.
-## Red lines
-- No pivots. Client-facing copy must speak as "we" and must not name the agency or any internal team.
-## Already tried / rejected — do not propose
-- Paid search ads on generic keywords (too expensive for the budget).
-''')
+# Workspace notes the prompt does not mention: the skill has to find them.
+TALLYHOP = textwrap.dedent('''\
+# Call notes — Tallyhop (internal)
 
-CLINIC_TIMELINE = CLINIC.replace('## Related assets', '- F10. New clinics get a 30-day free trial; from first contact to a paid subscription usually takes 6-10 weeks.\n## Related assets')
-LEADER_DE = LEADER.replace('## Competition', '- F8. Fernway sells only to small businesses in Germany; the site and product are in German.\n## Competition')
-assert CLINIC_TIMELINE != CLINIC and LEADER_DE != LEADER
+- Tallyhop is a web app for independent bicycle repair shops in Poland: parts inventory, repair tickets, SMS-free email notifications to customers when a bike is ready.
+- 52 shops pay a monthly subscription; most found us through a regional cycling trade fair in 2025.
+- There is no integration with parts wholesalers yet; shops type in parts by hand. Owners mention it on almost every call.
+- A shop usually decides within 2-3 weeks of a demo; there is a 14-day free trial.
+- The website has a demo request form and a pricing page. Nobody tracks which page a demo request came from.
+- Tried and stopped: paid search ads on generic keywords ("bike shop software") — too expensive for the budget; cold emails to shop owners — almost no replies.
+- Already in progress: a referral discount for existing shops.
+- The team: two founders and one developer. Founders can spend about 4 hours a week on growth.
+''')
+PARTLINK = textwrap.dedent('''\
+# Partlink — заметки
+
+- Partlink — сервис заказа запчастей для небольших автосервисов в России: каталог, заказ у нескольких поставщиков в одном окне, история заказов.
+- 30 автосервисов платят подписку; почти все пришли по рекомендациям.
+- На сайте есть форма заявки на демо; рассылок клиентам пока нет.
+- Время на рост: около 5 часов в неделю у основателя.
+''')
+TERMS_HEADER = '# Fixture names from tools/gen-evals.py. tools/check-skill.py fails if any appears in a skill.\n'
+
+UNAVAILABLE = 'I am unavailable during the task: make reasonable decisions and list assumptions and open questions at the end.'
+SAVE = 'Save the result to `docs/ideas.md`.'
+
+PLACEHOLDERS = ('no-placeholders', 'regex!', 1, 'file:docs/ideas.md', r'\bTBD\b|\bTODO\b|\?\?\?|<[a-z ]+>')
+EMPTY_FIELDS = ('no-empty-fields', 'regex!', 2, 'file:docs/ideas.md',
+                r'^[ \t>*-]*\**(cheapest test|stop if|kill criterion|самый дешёвый тест|самый дешевый тест|остановить, если|стоп, если|критерий остановки)\**:?\**:?[ \t]*(?=\r?\n(?![ \t]+\S)|(?![\s\S]))')
+IDS_RESOLVE = ('fact-ids-resolve', 'llm', 2, 'file:docs/ideas.md',
+               'PASS if every fact reference used in the document (labels such as F1, F2 or Ф1, Ф2) points to an entry that exists in the document\'s own list of facts, and the document has such a list whenever it uses such labels. FAIL if any label is cited but missing from the list. If the document uses no such labels, PASS.')
 
 CASES = {
-    'asks-for-context-when-missing': (None,
-        'We run a small B2B SaaS. Give me growth hypotheses we could test in the next two months.',
-        [('asks-context', 'llm', 3, 'last_message',
-          'PASS if the reply does not deliver a full list of growth hypotheses and instead asks for (or offers a template for) missing product context — at minimum customer base, red lines/constraints, and what was already tried or rejected. FAIL if it produces a list of concrete hypotheses without that context.')]),
-    'respects-rejected-and-approved': (CLINIC, None,
+    'proceeds-without-context': (None,
+        'We run a small B2B SaaS. Give me growth hypotheses we could test in the next two months. ' + UNAVAILABLE,
+        [('no-invented-facts', 'llm', 3, 'last_message',
+          'The user gave no facts about the product beyond "a small B2B SaaS". PASS if the reply either asks focused questions (each one would change the hypotheses; not a long generic questionnaire), or gives hypotheses while stating plainly that they rest on assumptions, and in both cases presents no specific fact about this product (customer count, features, prices, traffic, channels already tried) as known. FAIL if it states such specifics as facts, or if its questions are a long generic questionnaire rather than the few that matter.')]),
+    'reads-workspace-materials': (('notes/call-notes.md', TALLYHOP),
+        'Give growth hypotheses for our product Tallyhop for the next two months. ' + SAVE + ' ' + UNAVAILABLE,
+        [('uses-notes', 'llm', 3, 'file:docs/ideas.md',
+          'The workspace contained notes the user did not mention. They say: shops type in parts by hand because there is no wholesaler integration; a shop decides within 2-3 weeks of a demo; nobody tracks which page a demo request came from. PASS if the document uses at least two of these three facts. FAIL otherwise.'),
+         PLACEHOLDERS, EMPTY_FIELDS, IDS_RESOLVE]),
+    'respects-tried-and-in-progress': (('notes/call-notes.md', TALLYHOP),
+        'Give growth hypotheses for our product Tallyhop for the next two months. ' + SAVE + ' ' + UNAVAILABLE,
         [('no-repeats', 'llm', 3, 'file:docs/ideas.md',
-          'Context lists as rejected: cold calling clinics; a free practice audit requiring patient data. Approved/in progress: a referral discount for existing clinics. PASS if no hypothesis is essentially one of these (by meaning, not wording). FAIL otherwise.')]),
-    'no-invented-numbers': (CLINIC, None,
-        [('no-invented-numbers', 'llm', 3, 'file:docs/ideas.md',
-          'The context contains no traffic volumes, search demand, conversion rates or market sizes. PASS if every such number in the document is either absent or explicitly marked as an assumption/target to be validated. FAIL if invented volumes, conversion rates or market sizes are stated as facts.')]),
-    'no-fake-ids-or-placeholders': (CLINIC, None,
-        [('no-nonexistent-ids', 'regex!', 2, 'file:docs/ideas.md', r'\bF([1-9][0-9]+|0)\b'),
-         ('no-placeholders', 'regex!', 1, 'file:docs/ideas.md', r'\bTBD\b|\bTODO\b|\?\?\?')]),
-    'feasible-timeline': (CLINIC_TIMELINE, None,
-        [('timeline-fits', 'llm', 3, 'file:docs/ideas.md',
-          'Context: new clinics get a 30-day free trial, and from first contact to a paid subscription usually takes 6-10 weeks (F10); the goal horizon is 2 months. PASS if every hypothesis\'s success metric can actually be observed within its stated window given this cycle (e.g. it uses a leading indicator such as trials started or demos booked, or it explicitly extends the window), AND the document distinguishes a "not enough data" outcome from refutation/stopping. FAIL if any hypothesis judges success on paid conversions within a window shorter than the cycle without a leading indicator, or if insufficient data is treated as failure.')]),
-    'hygiene-is-step-zero': (CLINIC, None,
-        [('hygiene-separated', 'llm', 2, 'file:docs/ideas.md',
-          'Context facts: lead source is not recorded (F7) and the site FAQ promises prepayment that does not exist (F8). PASS if fixing these appears as a separate preliminary/hygiene step (not counted among the growth hypotheses). FAIL if they are presented as growth hypotheses themselves or ignored entirely.')]),
-    'no-absurd-leader-switch': (LEADER, None,
-        [('no-leader-switch', 'llm', 3, 'file:docs/ideas.md',
-          'Fernway has no feature parity with the market leader Formatica and serves a much smaller, cheaper segment. PASS if no hypothesis is a head-on "switch from Formatica to us" campaign (comparison page, ads on the leader brand, outreach to the leader\'s customers). FAIL if such a campaign is proposed as a hypothesis.')]),
-    'company-voice': (LEADER, None,
-        [('no-internal-names', 'llm', 2, 'file:docs/ideas.md',
-          'Red line: client-facing copy must speak as "we" and must not name the marketing agency or any internal team. PASS if any offer/copy text intended for customers speaks as "we" without naming the agency or an internal team (mentions in internal reasoning such as insight/mechanism are fine). FAIL if customer-facing copy names the agency/team.')]),
-    'proactive-site-block': (CLINIC, None,
-        [('site-block', 'llm', 3, 'file:docs/ideas.md',
-          'The user asked generally for growth hypotheses and did not request any structure. The product has a website and a booking widget (F2, F7, F8). PASS if the document contains a separate block/section of website or product improvements that affect sales (conversion, booking flow, onboarding, pricing page etc.), distinct from channel/company ideas and distinct from hygiene fixes. FAIL if there is no such separate block.')]),
-    'russian-market-compliance': (CLINIC, None,
-        [('ru-compliance', 'llm', 2, 'file:docs/ideas.md',
-          'The product operates in Russia. PASS if, for every hypothesis that collects contacts (forms, lead magnets) or uses paid/sponsored placements or promotional messaging, the document mentions the relevant requirement: consent to personal data processing (152-FZ) for data collection, ad marking (erid / ad data operator) for paid or sponsored online placements, prior consent for promotional messages. FAIL if such a hypothesis ignores the relevant requirement, or if the document requires erid / ad marking for the company\'s own email or push mailings (Roskomnadzor letter 03-97847 excludes them; only consent applies). If no hypothesis involves these, PASS.')]),
-    'local-market-not-russia': (LEADER_DE, None,
-        [('no-russia-specifics', 'llm', 3, 'file:docs/ideas.md',
-          'Fernway sells only to small businesses in Germany (F8). PASS if the document does not apply Russia-specific channels or rules — Yandex (Direct, Wordstat, Metrica, Webmaster), VK, 2GIS, Avito, Federal Law 152-FZ, erid/ERIR ad marking, Roskomnadzor. FAIL if any of them is recommended or required for this product.')]),
-    'replies-in-user-language': (CLINIC,
-        'Используя контекст продукта в `growth-context.md`, дай гипотезы роста на ближайшие два месяца. Сохрани их в `docs/ideas.md`. Во время задачи я недоступен: принимай разумные решения, допущения перечисли в конце.',
+          'The notes say these were tried and stopped: paid search ads on generic keywords; cold emails to shop owners. In progress: a referral discount for existing shops. PASS if no hypothesis is essentially one of these (by meaning, not wording) unless it explicitly explains what is different this time. FAIL otherwise.')]),
+    'outside-in-without-web': (None,
+        'We have a sales meeting next week with Quorvane, a company we know nothing about yet. Research them and give growth hypotheses we could pitch. ' + SAVE + ' There is no internet access in this environment. ' + UNAVAILABLE,
+        [('no-invented-company-facts', 'llm', 3, 'file:docs/ideas.md',
+          'There was no internet access and no materials about Quorvane. PASS if the document says that research was not possible and lists what to find out or ask, and does not state any fact about Quorvane (industry, size, customers, products, website content) as known; hypotheses, if any, are explicitly conditional on assumptions. FAIL if it presents facts about Quorvane as known.'),
+         PLACEHOLDERS]),
+    'replies-in-user-language': (('notes/call-notes.md', TALLYHOP),
+        'Дай гипотезы роста для нашего продукта Tallyhop на ближайшие два месяца. Сохрани результат в `docs/ideas.md`. Во время задачи я недоступен: принимай разумные решения, допущения и открытые вопросы перечисли в конце.',
         [('russian-output', 'llm', 2, 'file:docs/ideas.md',
-          'The user wrote the request in Russian; the product context file is in English. PASS if the document prose, including section and field headings, is written in Russian (product names, fact IDs, law names and other proper nouns may stay as they are). FAIL if the document is mostly in English.')]),
+          'The user wrote in Russian; the notes are in English. PASS if the document prose, including headings and field names, is in Russian (product names, fact labels and proper nouns may stay as they are). FAIL if it is mostly in English.')]),
+    'russian-market-legal-notes': (('notes/partlink.md', PARTLINK),
+        'Дай гипотезы роста для Partlink на ближайшие два месяца. Сохрани результат в `docs/ideas.md`. Во время задачи я недоступен: принимай разумные решения, допущения и открытые вопросы перечисли в конце.',
+        [('ru-legal', 'llm', 2, 'file:docs/ideas.md',
+          'The product sells in Russia. PASS only if: (1) every hypothesis that collects contacts (forms, lead magnets, quizzes) mentions consent to personal data processing (152-FZ); (2) every hypothesis that sends promotional messages (email, messenger, SMS) mentions prior consent of the recipient; (3) every hypothesis with paid or sponsored online placements mentions ad marking. If no hypothesis involves these, PASS. FAIL if any applicable note is missing.')]),
 }
-ALLOWED = {}
-DEFAULT_PROMPT = 'Using the product context in `growth-context.md`, give growth hypotheses for the next two months. Save them to `docs/ideas.md`. I am unavailable during the task: make reasonable decisions and list assumptions at the end.'
 
-for entry in os.listdir(OUT) if os.path.isdir(OUT) else []:
-    if entry != 'results':
-        shutil.rmtree(os.path.join(OUT, entry))
-for name, (ctx, prompt, graders) in CASES.items():
+def write_case(name, workspace_file, prompt, graders):
     d = os.path.join(OUT, name); os.makedirs(os.path.join(d, 'graders'))
-    allowed = ALLOWED.get(name, '[Read, Glob, Grep, Skill, Write, Edit]')
-    open(os.path.join(d, 'prompt.md'), 'w').write(f'---\nmax_turns: 40\ntimeout_seconds: 900\nallowed_tools: {allowed}\ntags: [growth-ideas]\n---\n{prompt or DEFAULT_PROMPT}\n')
-    if ctx:
-        open(os.path.join(d, 'case.yaml'), 'w').write(f'schema_version: "1.1"\nname: {name}\ncontext:\n  scaffold_script: scaffold.sh\n')
-        open(os.path.join(d, 'scaffold.sh'), 'w').write("#!/bin/bash\nset -euo pipefail\nmkdir -p docs\ncat > growth-context.md <<'CTX'\n" + ctx + "CTX\n")
-        os.chmod(os.path.join(d, 'scaffold.sh'), 0o755)
+    open(os.path.join(d, 'prompt.md'), 'w').write(
+        f'---\nmax_turns: 40\ntimeout_seconds: 900\nallowed_tools: [Read, Glob, Grep, Skill, Write, Edit]\ntags: [growth-ideas]\n---\n{prompt}\n')
+    script = '#!/bin/bash\nset -euo pipefail\nmkdir -p docs\n'
+    if workspace_file:
+        path, body = workspace_file
+        script += f"mkdir -p {os.path.dirname(path)}\ncat > {path} <<'CTX'\n{body}CTX\n"
+    open(os.path.join(d, 'case.yaml'), 'w').write(f'schema_version: "1.1"\nname: {name}\ncontext:\n  scaffold_script: scaffold.sh\n')
+    open(os.path.join(d, 'scaffold.sh'), 'w').write(script)
+    os.chmod(os.path.join(d, 'scaffold.sh'), 0o755)
     for gname, gtype, w, target, body in graders:
         if gtype in ('regex', 'regex!'):
             match = '\nmatch: not_contains' if gtype == 'regex!' else ''
-            front = f"type: regex\ntarget: {{ source: file, path: {target.split(':', 1)[1]} }}\npattern: '{body}'{match}\nweight: {w}\narm: both"
+            flags = 'im' if gname == 'no-empty-fields' else 'i'
+            front = f"type: regex\ntarget: {{ source: file, path: {target.split(':', 1)[1]} }}\npattern: '{body}'{match}\nflags: {flags}\nweight: {w}\narm: both"
             open(os.path.join(d, 'graders', gname + '.md'), 'w').write(f'---\n{front}\n---\n')
         else:
             focus = 'last_message' if target == 'last_message' else f"{{ source: file, path: {target.split(':', 1)[1]} }}"
             open(os.path.join(d, 'graders', gname + '.md'), 'w').write(f'---\ntype: llm\nfocus: {focus}\nweight: {w}\narm: both\n---\n{body}\n')
+
+def reset():
+    for entry in os.listdir(OUT) if os.path.isdir(OUT) else []:
+        if entry == 'results':
+            continue
+        path = os.path.join(OUT, entry)
+        shutil.rmtree(path) if os.path.isdir(path) else os.remove(path)
+
+os.makedirs(OUT, exist_ok=True)
+reset()
+for name, (workspace_file, prompt, graders) in CASES.items():
+    write_case(name, workspace_file, prompt, graders)
+open(os.path.join(OUT, 'fixture-terms.txt'), 'w').write(TERMS_HEADER + '\n'.join(FIXTURE_TERMS) + '\n')
 print('cases:', sorted(CASES))
