@@ -6,6 +6,9 @@
 - Growth metric: <e.g., number of paying customers / leads>
 - Horizon: <e.g., 2 months>
 
+## Market
+- Where the product sells (countries / regions) and the customers' language: <e.g., Russia, Russian>
+
 ## Product — facts
 - F1. What it is and who it is for.
 - F2. What the product has now.
@@ -18,7 +21,7 @@
 - F7. Main sales blockers.
 
 ## Channels and data
-- F8. What is known about traffic and demand (Search Console, Yandex Metrica, Yandex Webmaster, Wordstat — with numbers and export date).
+- F8. What is known about traffic and demand (search engine consoles, web analytics, keyword tools used in your market — with numbers and export date).
 - F9. Which channels work, which were tried.
 
 ## Related assets

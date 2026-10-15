@@ -1,6 +1,6 @@
 ---
 name: growth-ideas
-description: Generates evidence-grounded growth hypotheses for a B2B product at the intersection of product and marketing — not backlog filler, but 3–5 ideas that can go into a test within 2 weeks. Works from a product context file (facts, constraints, what was already rejected or approved), follows the chain "customer job → opportunities → hypotheses → how it fails", and accounts for the Russian market. Use when asked for growth ideas, test hypotheses, "how to get more customers / leads / sales", or prioritization of growth ideas. Гипотезы роста, идеи роста, как получить больше клиентов, заявок, продаж.
+description: Generates evidence-grounded growth hypotheses for a B2B product at the intersection of product and marketing — not backlog filler, but a few ideas that can go into a test within 2 weeks. Works from a product context file (facts, constraints, what was already rejected or approved), follows the chain "customer job → opportunities → hypotheses → how it fails", and adapts channels and legal checks to the product's local market (with a bundled reference for Russia). Use when asked for growth ideas, test hypotheses, "how to get more customers / leads / sales", or prioritization of growth ideas. Гипотезы роста, идеи роста, как получить больше клиентов, заявок, продаж.
 ---
 
 # Growth hypotheses
@@ -15,7 +15,13 @@ Find the product context file (usually `growth-context.md` in the project root, 
 
 If there is no file, or the "Customers", "Red lines", or "Already tried / rejected" sections are empty, **stop and ask questions**, offering to fill in the template. Without these sections the model confidently proposes what the owner rejected long ago: tests on a customer base that does not exist; pivots; a "free audit" that depends on access to the client's data; things the product already has.
 
-Always read the Russian market reference (`references/ru-market.md`).
+## Step 0a. The product's market
+
+Find in the context where the product sells: countries or regions, and the language of the customers. Channels, search engines, platforms, and laws all depend on it.
+- If the market is not stated, ask together with the other missing context. If no one can answer, state the market you assume as the first item in the assumptions list.
+- **Russia:** read `references/ru-market.md` and apply what is relevant.
+- **Any other market:** there is no bundled reference. Use the channels and platforms that are actually used in that market. Name legal requirements (data protection, ad disclosure, consent for promotional messages) as items for the owner to verify for that jurisdiction; do not state specific rules without a source.
+- Do not carry one market's channels or laws over to another (for example, Yandex or Russian ad marking for a product sold in Germany).
 
 ## Step 0b. Clarify the scope if the user did not set it
 
@@ -37,6 +43,11 @@ From the facts in the context, not from general knowledge:
 - **What scares them** — the anxieties that break the purchase (data access, timelines, complexity, cost of a mistake).
 
 Cite a fact ID for every conclusion. Mark anything not in the facts as an "assumption".
+
+**Grounding rule (applies to the whole output).** Every material claim about the product, the website, customers, competitors, or the market cites a fact ID that actually supports it, or is marked "assumption — verify first". Cite only IDs that exist in the context. Missing from the facts does not mean missing in reality: write "the context does not say whether there are public case studies", not "there are no public case studies". This applies to qualitative claims as much as to numbers.
+- **Cite a fact only for what it literally says.** "Lead source is not recorded (F7)" supports "we cannot tell where leads come from", not "there is no baseline conversion data" or "there is no analytics". When you draw a conclusion from a fact, label it: "inference from F7".
+- **Do not invent reasons.** If the context lists an idea as rejected without saying why, do not explain why it was rejected.
+- **Label consistently.** An assumption stays an assumption everywhere it appears, including in mechanisms and offer copy; do not state it as a fact in one place and as "verify first" in another.
 
 ## Step 2. Opportunity tree
 
@@ -70,18 +81,19 @@ Write offers in the company's voice ("we", "our team"). Do not reveal the intern
 
 ## Step 4. Hypotheses
 
-For each remaining idea:
+For each remaining idea fill in every field below with concrete content — no placeholders such as "TBD". An idea for which you cannot fill in the cheapest test or the kill criterion is not ready: drop it or move it to the assumptions list.
 
 - **Name** — short, to the point.
 - **Lever.**
 - **Insight** — why it should work, citing fact IDs.
 - **Mechanism** — what exactly changes and why the customer will behave differently.
 - **First step this week** — who does what, how many owner hours. Hand off to AI or a contractor whatever can be handed off.
-- **Metric and success threshold for 4–6 weeks** — mark the threshold as a proposal for the owner to approve if the context has no benchmarks.
+- **Metric and success threshold for 4–6 weeks** — mark the threshold as a proposal for the owner to approve if the context has no benchmarks. **Check the timing:** the measurement window must cover the trial length or sales cycle and leave room for enough observations. If the metric cannot be observed within the window (for example, a 2-month free period measured on paid conversion after 6 weeks), use a leading indicator that is observable within the window, or state a longer window explicitly.
 - **Cheapest test** — the minimal version that already gives a signal (fake door, manual delivery, one email, one page).
 - **How it fails** — the most likely reason it won't work.
-- **Kill criterion** — when we stop.
-- **Why it does not contradict the constraints.**
+- **Outcomes** — what counts as confirmed, refuted, and **not enough data**. Not enough data (too few observations by the end of the window) is not a refutation: say what to do then (extend, increase exposure, or drop for cost reasons).
+- **Kill criterion** — when we drop this hypothesis as a whole (not a sub-task or a fallback inside it), stated on observable data with a date or a number of observations.
+- **Why it does not contradict the constraints.** Repeat every legal or compliance note that applies to this hypothesis inside it (for example, consent for a promotional message), even if a similar hypothesis already has it.
 
 ## Step 5. Prioritization and output
 
@@ -91,6 +103,6 @@ For each remaining idea:
 
 Run Steps 1–3 separately for each block rather than building one list and splitting it afterwards. If the user asks for other blocks or only one, follow their structure. Hygiene (tracking, technical errors) does not count toward the blocks — it goes into "Step 0".
 
-Sort by "strength of the signal in the facts × impact on the goal ÷ owner's time". Deliver **3–5 hypotheses** (or as many as requested), plus a separate short "Step 0 for the owner" block — the hygiene without which the result cannot be measured. End with a list of assumptions worth checking.
+Sort by "strength of the signal in the facts × impact on the goal ÷ owner's time". **There is no target number of hypotheses:** include only ideas that passed Step 3 and have every field grounded and filled in. Never pad to reach a count; a short list of strong ideas beats a long one. If the user asks for a specific number, follow it, but say so if fewer ideas pass the filter. Add a separate short "Step 0 for the owner" block — the hygiene without which the result cannot be measured. End with a list of assumptions worth checking.
 
 Write for an owner who reads between meetings: concrete, no filler, no generic phrases like "improve the content" or "strengthen the brand".

@@ -50,6 +50,10 @@ LEADER = textwrap.dedent('''\
 - Paid search ads on generic keywords (too expensive for the budget).
 ''')
 
+CLINIC_TIMELINE = CLINIC.replace('## Related assets', '- F10. New clinics get a 30-day free trial; from first contact to a paid subscription usually takes 6-10 weeks.\n## Related assets')
+LEADER_DE = LEADER.replace('## Competition', '- F8. Fernway sells only to small businesses in Germany; the site and product are in German.\n## Competition')
+assert CLINIC_TIMELINE != CLINIC and LEADER_DE != LEADER
+
 CASES = {
     'asks-for-context-when-missing': (None,
         'We run a small B2B SaaS. Give me growth hypotheses we could test in the next two months.',
@@ -61,10 +65,12 @@ CASES = {
     'no-invented-numbers': (CLINIC, None,
         [('no-invented-numbers', 'llm', 3, 'file:docs/ideas.md',
           'The context contains no traffic volumes, search demand, conversion rates or market sizes. PASS if every such number in the document is either absent or explicitly marked as an assumption/target to be validated. FAIL if invented volumes, conversion rates or market sizes are stated as facts.')]),
-    'cites-facts-and-kill-criteria': (CLINIC, None,
-        [('cites-ids', 'regex', 1, 'file:docs/ideas.md', r'F[0-9]'),
-         ('has-stop-criterion', 'regex', 2, 'file:docs/ideas.md', r'[Кк]ритери[йи] остановки|[Ss]top criteri|[Kk]ill criteri'),
-         ('has-cheapest-test', 'regex', 1, 'file:docs/ideas.md', r'[Сс]амый дешёвый тест|[Сс]амый дешевый тест|[Cc]heapest test')]),
+    'no-fake-ids-or-placeholders': (CLINIC, None,
+        [('no-nonexistent-ids', 'regex!', 2, 'file:docs/ideas.md', r'\bF([1-9][0-9]+|0)\b'),
+         ('no-placeholders', 'regex!', 1, 'file:docs/ideas.md', r'\bTBD\b|\bTODO\b|\?\?\?')]),
+    'feasible-timeline': (CLINIC_TIMELINE, None,
+        [('timeline-fits', 'llm', 3, 'file:docs/ideas.md',
+          'Context: new clinics get a 30-day free trial, and from first contact to a paid subscription usually takes 6-10 weeks (F10); the goal horizon is 2 months. PASS if every hypothesis\'s success metric can actually be observed within its stated window given this cycle (e.g. it uses a leading indicator such as trials started or demos booked, or it explicitly extends the window), AND the document distinguishes a "not enough data" outcome from refutation/stopping. FAIL if any hypothesis judges success on paid conversions within a window shorter than the cycle without a leading indicator, or if insufficient data is treated as failure.')]),
     'hygiene-is-step-zero': (CLINIC, None,
         [('hygiene-separated', 'llm', 2, 'file:docs/ideas.md',
           'Context facts: lead source is not recorded (F7) and the site FAQ promises prepayment that does not exist (F8). PASS if fixing these appears as a separate preliminary/hygiene step (not counted among the growth hypotheses). FAIL if they are presented as growth hypotheses themselves or ignored entirely.')]),
@@ -79,28 +85,33 @@ CASES = {
           'The user asked generally for growth hypotheses and did not request any structure. The product has a website and a booking widget (F2, F7, F8). PASS if the document contains a separate block/section of website or product improvements that affect sales (conversion, booking flow, onboarding, pricing page etc.), distinct from channel/company ideas and distinct from hygiene fixes. FAIL if there is no such separate block.')]),
     'russian-market-compliance': (CLINIC, None,
         [('ru-compliance', 'llm', 2, 'file:docs/ideas.md',
-          'The product operates in Russia. PASS if, for every hypothesis that collects contacts (forms, lead magnets) or uses paid/sponsored placements or promotional messaging, the document mentions the relevant requirement: consent to personal data processing (152-FZ) for data collection, ad marking (erid / ad data operator) for paid placements, prior consent for promotional messages. FAIL if such a hypothesis ignores the relevant requirement. If no hypothesis involves these, PASS.')]),
+          'The product operates in Russia. PASS if, for every hypothesis that collects contacts (forms, lead magnets) or uses paid/sponsored placements or promotional messaging, the document mentions the relevant requirement: consent to personal data processing (152-FZ) for data collection, ad marking (erid / ad data operator) for paid or sponsored online placements, prior consent for promotional messages. FAIL if such a hypothesis ignores the relevant requirement, or if the document requires erid / ad marking for the company\'s own email or push mailings (Roskomnadzor letter 03-97847 excludes them; only consent applies). If no hypothesis involves these, PASS.')]),
+    'local-market-not-russia': (LEADER_DE, None,
+        [('no-russia-specifics', 'llm', 3, 'file:docs/ideas.md',
+          'Fernway sells only to small businesses in Germany (F8). PASS if the document does not apply Russia-specific channels or rules — Yandex (Direct, Wordstat, Metrica, Webmaster), VK, 2GIS, Avito, Federal Law 152-FZ, erid/ERIR ad marking, Roskomnadzor. FAIL if any of them is recommended or required for this product.')]),
     'replies-in-user-language': (CLINIC,
-        'Используя контекст продукта в `growth-context.md`, дай 3–5 гипотез роста на ближайшие два месяца. Сохрани их в `docs/ideas.md`. Во время задачи я недоступен: принимай разумные решения, допущения перечисли в конце.',
+        'Используя контекст продукта в `growth-context.md`, дай гипотезы роста на ближайшие два месяца. Сохрани их в `docs/ideas.md`. Во время задачи я недоступен: принимай разумные решения, допущения перечисли в конце.',
         [('russian-output', 'llm', 2, 'file:docs/ideas.md',
           'The user wrote the request in Russian; the product context file is in English. PASS if the document prose, including section and field headings, is written in Russian (product names, fact IDs, law names and other proper nouns may stay as they are). FAIL if the document is mostly in English.')]),
 }
-DEFAULT_PROMPT = 'Using the product context in `growth-context.md`, give 3-5 growth hypotheses for the next two months. Save them to `docs/ideas.md`. I am unavailable during the task: make reasonable decisions and list assumptions at the end.'
+ALLOWED = {}
+DEFAULT_PROMPT = 'Using the product context in `growth-context.md`, give growth hypotheses for the next two months. Save them to `docs/ideas.md`. I am unavailable during the task: make reasonable decisions and list assumptions at the end.'
 
 for entry in os.listdir(OUT) if os.path.isdir(OUT) else []:
     if entry != 'results':
         shutil.rmtree(os.path.join(OUT, entry))
 for name, (ctx, prompt, graders) in CASES.items():
     d = os.path.join(OUT, name); os.makedirs(os.path.join(d, 'graders'))
-    allowed = '[Read, Glob, Grep, Skill, Write, Edit]'
+    allowed = ALLOWED.get(name, '[Read, Glob, Grep, Skill, Write, Edit]')
     open(os.path.join(d, 'prompt.md'), 'w').write(f'---\nmax_turns: 40\ntimeout_seconds: 900\nallowed_tools: {allowed}\ntags: [growth-ideas]\n---\n{prompt or DEFAULT_PROMPT}\n')
     if ctx:
         open(os.path.join(d, 'case.yaml'), 'w').write(f'schema_version: "1.1"\nname: {name}\ncontext:\n  scaffold_script: scaffold.sh\n')
         open(os.path.join(d, 'scaffold.sh'), 'w').write("#!/bin/bash\nset -euo pipefail\nmkdir -p docs\ncat > growth-context.md <<'CTX'\n" + ctx + "CTX\n")
         os.chmod(os.path.join(d, 'scaffold.sh'), 0o755)
     for gname, gtype, w, target, body in graders:
-        if gtype == 'regex':
-            front = f"type: regex\ntarget: {{ source: file, path: {target.split(':', 1)[1]} }}\npattern: '{body}'\nflags: i\nweight: {w}\narm: both"
+        if gtype in ('regex', 'regex!'):
+            match = '\nmatch: not_contains' if gtype == 'regex!' else ''
+            front = f"type: regex\ntarget: {{ source: file, path: {target.split(':', 1)[1]} }}\npattern: '{body}'{match}\nweight: {w}\narm: both"
             open(os.path.join(d, 'graders', gname + '.md'), 'w').write(f'---\n{front}\n---\n')
         else:
             focus = 'last_message' if target == 'last_message' else f"{{ source: file, path: {target.split(':', 1)[1]} }}"

@@ -1,4 +1,4 @@
 schema_version: "1.1"
-name: cites-facts-and-kill-criteria
+name: feasible-timeline
 context:
   scaffold_script: scaffold.sh
